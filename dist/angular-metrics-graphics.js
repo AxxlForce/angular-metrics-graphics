@@ -14,19 +14,38 @@ angular.module('metricsgraphics', []).directive('chart', function () {
     return {
         link: function (scope, element) {
 
+            /**
+             * override or extend options with newly provided data
+             * @param newOptions
+             * @param oldOptions
+             */
             function extendOptions(newOptions, oldOptions) {
 
-                // override default options with values from the scope
+                // override previous options with new ones, if provided in new options
                 if (newOptions) {
+
                     Object.keys(newOptions).forEach(function (key) {
                         oldOptions[key] = newOptions[key];
                     });
                 }
             }
 
+            /**
+             * force chart to redraw with given options
+             *
+             * @param options
+             */
             function redraw(options) {
 
-                MG.data_graphic(options);
+                // only draw if there is actually something to draw
+                if (options.data.length > 0) {
+
+                    // !!! hack to force metricsgraphics to reevaluate time x values TODO: better solution?
+                    options.xax_format = null;
+
+                    // redraw chart
+                    MG.data_graphic(options);
+                }
             }
 
             // default options
@@ -60,16 +79,19 @@ angular.module('metricsgraphics', []).directive('chart', function () {
             options.data = scope.data || [];
             options.target = '#' + element[0].id;
 
-            // create the chart
-            MG.data_graphic(options);
-
+            /**
+             *  react to data changes
+             */
             scope.$watch('data', function (newValue, oldValue) {
 
                 options.data = newValue;
                 redraw(options);
 
-            }, true);
+            }, false);
 
+            /**
+             * react to option changes
+             */
             scope.$watch('options', function (newValue, oldValue) {
 
                 extendOptions(newValue, options);
