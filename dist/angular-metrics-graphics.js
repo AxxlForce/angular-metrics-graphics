@@ -10,7 +10,7 @@
  * @param {Array} data Chart data
  * @param {Object} options Chart configuration
  */
-angular.module('metricsgraphics',[]).directive('chart', function() {
+angular.module('metricsgraphics', []).directive('chart', function() {
   return {
     link: function(scope, element) {
       // default options
@@ -47,6 +47,8 @@ angular.module('metricsgraphics',[]).directive('chart', function() {
       options.target = '#' + element[0].id;
       // create the chart
       MG.data_graphic(options);
+
+      // blub
     },
     restrict: 'E',
     scope: {
