@@ -10,50 +10,77 @@
  * @param {Array} data Chart data
  * @param {Object} options Chart configuration
  */
-angular.module('metricsgraphics', []).directive('chart', function() {
-  return {
-    link: function(scope, element) {
-      // default options
-      var options = {
-        baselines: [], // [{value: 160000000, label: 'a baseline'}];
-        description: null,
-        height: 200,
-        right: 0,
-        title: null,
-        width: element[0].parentElement.clientWidth || 300,
-        x_accessor: null,
-        y_accessor: null
-      };
-      // override default options with values from the scope
-      if (scope.options) {
-        Object.keys(scope.options).forEach(function(key) {
-          options[key] = scope.options[key];
-        });
-      }
-      // create a random identifier for the chart element
-      // TODO replace this with a template that has a unique id
-      function randomString(len) {
-        var charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        var s = '';
-        for (var i = 0; i < len; i++) {
-          var randomPoz = Math.floor(Math.random() * charSet.length);
-          s += charSet.substring(randomPoz,randomPoz+1);
-        }
-        return 'mg-chart-' + s;
-      }
-      element[0].id = element[0].id ? element[0].id : randomString(5);
-      // set the data and target configuration options
-      options.data = scope.data || [];
-      options.target = '#' + element[0].id;
-      // create the chart
-      MG.data_graphic(options);
+angular.module('metricsgraphics', []).directive('chart', function () {
+    return {
+        link: function (scope, element) {
 
-      // blub
-    },
-    restrict: 'E',
-    scope: {
-      data: '=',
-      options: '='
-    }
-  };
+            function extendOptions(newOptions, oldOptions) {
+
+                // override default options with values from the scope
+                if (newOptions) {
+                    Object.keys(newOptions).forEach(function (key) {
+                        oldOptions[key] = newOptions[key];
+                    });
+                }
+            }
+
+            function redraw(options) {
+
+                MG.data_graphic(options);
+            }
+
+            // default options
+            var options = {
+                baselines: [], // [{value: 160000000, label: 'a baseline'}];
+                description: null,
+                height: 200,
+                right: 0,
+                title: null,
+                width: element[0].parentElement.clientWidth || 300,
+                x_accessor: null,
+                y_accessor: null
+            };
+
+            extendOptions(scope.options, options);
+
+            // create a random identifier for the chart element
+            // TODO replace this with a template that has a unique id
+            function randomString(len) {
+                var charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                var s = '';
+                for (var i = 0; i < len; i++) {
+                    var randomPoz = Math.floor(Math.random() * charSet.length);
+                    s += charSet.substring(randomPoz, randomPoz + 1);
+                }
+                return 'mg-chart-' + s;
+            }
+
+            element[0].id = element[0].id ? element[0].id : randomString(5);
+            // set the data and target configuration options
+            options.data = scope.data || [];
+            options.target = '#' + element[0].id;
+
+            // create the chart
+            redraw(options);
+
+            scope.$watch('data', function (newValue, oldValue) {
+
+                options.data = newValue;
+                redraw(options);
+
+            }, true);
+
+            scope.$watch('options', function (newValue, oldValue) {
+
+                extendOptions(newValue, options);
+                redraw(options);
+
+            }, true);
+        },
+        restrict: 'E',
+        scope: {
+            data: '=',
+            options: '='
+        }
+    };
 });
