@@ -47,6 +47,8 @@ angular.module('metricsgraphics', []).directive('chart', function() {
       options.target = '#' + element[0].id;
       // create the chart
       MG.data_graphic(options);
+
+      alert("asd");
     },
     restrict: 'E',
     scope: {
