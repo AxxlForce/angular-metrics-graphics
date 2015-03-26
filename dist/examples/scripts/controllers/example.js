@@ -7,7 +7,7 @@
  */
 angular
     .module('example')
-    .controller('ExampleCtrl', ['$scope', '$http', '$log', function ($scope, $http, $log) {
+    .controller('ExampleCtrl', ['$scope', '$http', '$interval', '$log', function ($scope, $http, $interval, $log) {
 
         $scope.STATES = {
             READY: 0,
@@ -55,6 +55,31 @@ angular
                     x_accessor: 'date',
                     y_accessor: 'value'
                 }
+            },
+            realtime: {
+                data: [],
+                options: {
+                    description: 'New data is shown as it comes in',
+                    title: 'Realtime updates',
+                    x_accessor: 'date',
+                    y_accessor: 'value',
+                    max_y: 120,
+                    xax_start_at_min: true,
+                    transition_on_update: true,
+                    y_extended_ticks: true,
+                    interpolate: 'linear'
+                }
+            },
+            spikes: {
+                data: [],
+                options: {
+                    description: 'You see mee?',
+                    title: 'Visible spikes',
+                    x_accessor: 'date',
+                    y_accessor: 'value',
+                    transition_on_update: false,
+                    y_extended_ticks: true
+                }
             }
         };
         $scope.state = $scope.STATES.READY;
@@ -84,7 +109,7 @@ angular
         $scope.read = function (chart) {
             $scope.alert = null;
             $scope.state = $scope.STATES.LOADING;
-            if ($scope.charts[chart]) {
+            if ($scope.charts[chart] && $scope.charts[chart].src) {
                 $http
                     .get($scope.charts[chart].src)
                     .success(function (data) {
@@ -104,8 +129,55 @@ angular
             }
         };
 
+        var updateRealtimeData = function (data, options) {
+
+            var date = new Date();
+            var diff_x;
+
+            // set min at the beginning
+            if (data.length === 0) {
+
+                options.min_x = date.getTime();
+                options.max_x = options.min_x + 20000;
+            }
+
+            // move the min_x when there are more than 10 values
+            if (data.length >= 10) {
+
+                options.min_x = data[data.length - 10].date.getTime();
+                diff_x = ((date.getTime() - options.min_x) * 2);
+                options.max_x = options.min_x + diff_x;
+
+                //remove first element
+                //data.shift();
+            }
+
+            // add new value
+            data.push({
+                date: date,
+                value: Math.random() * (100 - 0) + 0
+            });
+        };
+
+        $interval(function () {
+            updateRealtimeData($scope.charts.realtime.data, $scope.charts.realtime.options);
+        }, 1000);
+
+        //for (var i = 0; i < 10000; i++) {
+        //
+        //    var value = {
+        //        date: Date.now() + i,
+        //        value: 0
+        //    };
+        //
+        //    $scope.charts.spikes.data.push(value);
+        //}
+        //
+        //$scope.charts.spikes.data[3333].value = 1;
+        //$scope.charts.spikes.data[6666].value = 1;
+        //$scope.charts.spikes.data[9999].value = 1;
+
         // initialize the controller
         $scope.init();
-
     }
     ]);
