@@ -176,7 +176,7 @@ angular.module('metricsgraphics', []).directive('chart', function () {
                 }
 
                 angular.merge(options, newValue);
-                redraw(data, newValue);
+                redraw(data, options);
             }, true);
         },
         restrict: 'E',
