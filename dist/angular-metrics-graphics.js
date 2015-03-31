@@ -134,6 +134,7 @@ angular.module('metricsgraphics', []).directive('chart', function () {
                 height: 200,
                 right: 0,
                 title: null,
+                xax_format: null,
                 width: element[0].parentElement.clientWidth || 300,
                 x_accessor: null,
                 y_accessor: null
@@ -146,11 +147,8 @@ angular.module('metricsgraphics', []).directive('chart', function () {
             // set the target id in the options
             options.target = '#' + element[0].id;
 
-            // set data from scope or default
-            var data = scope.data || [];
-
             // initial draw
-            redraw(data, options);
+            redraw(scope.data, options);
 
             /**
              *  react to data changes
@@ -176,7 +174,7 @@ angular.module('metricsgraphics', []).directive('chart', function () {
                 }
 
                 angular.merge(options, newValue);
-                redraw(data, options);
+                redraw(scope.data, options);
             }, true);
         },
         restrict: 'E',
