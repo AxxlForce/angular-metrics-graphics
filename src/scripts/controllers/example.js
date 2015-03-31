@@ -64,7 +64,7 @@ angular
                     x_accessor: 'date',
                     y_accessor: 'value',
                     max_y: 120,
-                    xax_start_at_min: true,
+                    xax_start_at_min: false,
                     transition_on_update: true,
                     y_extended_ticks: true,
                     interpolate: 'linear'
