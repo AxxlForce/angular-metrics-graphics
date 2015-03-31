@@ -175,8 +175,7 @@ angular.module('metricsgraphics', []).directive('chart', function () {
              */
             scope.$watchCollection('data', function (newValue) {
 
-                var data = newValue;
-                redraw(data, options);
+                redraw(newValue, options);
             });
 
             /**
