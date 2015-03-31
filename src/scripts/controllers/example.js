@@ -64,7 +64,7 @@ angular
                     x_accessor: 'date',
                     y_accessor: 'value',
                     max_y: 120,
-                    xax_start_at_min: true,
+                    xax_start_at_min: false,
                     transition_on_update: true,
                     y_extended_ticks: true,
                     interpolate: 'linear'
@@ -73,12 +73,36 @@ angular
             spikes: {
                 data: [],
                 options: {
-                    description: 'You see mee?',
-                    title: 'Visible spikes',
+                    description: 'Even if time data does not map?',
+                    title: 'Linked?',
                     x_accessor: 'date',
                     y_accessor: 'value',
                     transition_on_update: false,
                     y_extended_ticks: true
+                }
+            },
+            linked: {
+                first: {
+                    data: [],
+                    options: {
+                        description: '',
+                        title: 'Linked!',
+                        x_accessor: 'date',
+                        y_accessor: 'value',
+                        transition_on_update: false,
+                        y_extended_ticks: true
+                    }
+                },
+                second: {
+                    data: [],
+                    options: {
+                        description: '',
+                        title: 'Linked!',
+                        x_accessor: 'date',
+                        y_accessor: 'value',
+                        transition_on_update: false,
+                        y_extended_ticks: true
+                    }
                 }
             }
         };
@@ -165,17 +189,38 @@ angular
 
         //for (var i = 0; i < 10000; i++) {
         //
-        //    var value = {
-        //        date: Date.now() + i,
-        //        value: 0
-        //    };
+        //var value = {
+        //    date: Date.now() + i,
+        //    value: Math.random() * (100 - 0) + 0
+        //};
         //
-        //    $scope.charts.spikes.data.push(value);
+        //    $scope.charts.spikes.push(value);
         //}
         //
         //$scope.charts.spikes.data[3333].value = 1;
         //$scope.charts.spikes.data[6666].value = 1;
         //$scope.charts.spikes.data[9999].value = 1;
+
+        for (var i = 0; i < 30; i++) {
+
+            var date = Date.now() + (i * 1000);
+
+            if(i === 10) {
+                $scope.charts.linked.first.options.min_x = date;
+                $scope.charts.linked.second.options.min_x = date;
+            }
+
+            var value = {
+                date: date + (Math.random() * (20 - 40) + 20),
+                value: Math.random() * (100 - 0) + 0
+            };
+
+            var data = ( i % 2 === 0 ) ? $scope.charts.linked.first.data : $scope.charts.linked.second.data;
+            data.push(value);
+
+            $scope.charts.linked.first.options.max_x = date + 1000;
+            $scope.charts.linked.second.options.max_x = date + 1000;
+        }
 
         // initialize the controller
         $scope.init();

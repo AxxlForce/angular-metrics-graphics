@@ -127,6 +127,21 @@ angular.module('metricsgraphics', []).directive('chart', function () {
                 }
             }
 
+            function mouseover(d, i) {
+
+                console.log('mouse in');
+            }
+
+            function mousemove(d, i) {
+
+                console.log('mouse move');
+            }
+
+            function mouseout(d, i) {
+
+                console.log('mouse out');
+            }
+
             // default options
             var options = {
                 baselines: [], // [{value: 160000000, label: 'a baseline'}];
@@ -136,7 +151,10 @@ angular.module('metricsgraphics', []).directive('chart', function () {
                 title: null,
                 width: element[0].parentElement.clientWidth || 300,
                 x_accessor: null,
-                y_accessor: null
+                y_accessor: null,
+                mouseover: mouseover,
+                mousemove: mousemove,
+                mouseout: mouseout
             };
             // apply options from scope
             angular.merge(options, scope.options);
@@ -146,18 +164,19 @@ angular.module('metricsgraphics', []).directive('chart', function () {
             // set the target id in the options
             options.target = '#' + element[0].id;
 
-            // set data from scope or default
-            var data = scope.data || [];
+            // set linked option
+            options.linked = scope.linked || false;
 
             // initial draw
-            redraw(data, options);
+            redraw(scope.data, options);
 
             /**
              *  react to data changes
              */
             scope.$watchCollection('data', function (newValue) {
 
-                redraw(newValue, options);
+                var data = newValue;
+                redraw(data, options);
             });
 
             /**
@@ -176,13 +195,23 @@ angular.module('metricsgraphics', []).directive('chart', function () {
                 }
 
                 angular.merge(options, newValue);
-                redraw(data, newValue);
+                redraw(scope.data, options);
             }, true);
+
+            /**
+             * react to linked changes
+             */
+            scope.$watch('linked', function (newValue) {
+
+                options.linked = newValue;
+                redraw(scope.data, options);
+            });
         },
         restrict: 'E',
         scope: {
             data: '=',
-            options: '='
+            options: '=',
+            linked: '='
         }
     };
 });
