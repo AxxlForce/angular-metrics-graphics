@@ -63,9 +63,8 @@ angular
                     title: 'Realtime updates',
                     x_accessor: 'date',
                     y_accessor: 'value',
-                    max_y: 120,
                     xax_start_at_min: false,
-                    transition_on_update: true,
+                    transition_on_update: false,
                     y_extended_ticks: true,
                     interpolate: 'linear'
                 }
@@ -141,22 +140,22 @@ angular
                 options.max_x = options.min_x + 20000;
             }
 
-            // move the min_x when there are more than 10 values
-            if (data.length >= 10) {
-
-                options.min_x = data[data.length - 10].date.getTime();
-                diff_x = ((date.getTime() - options.min_x) * 2);
-                options.max_x = options.min_x + diff_x;
-
-                //remove first element
-                //data.shift();
-            }
-
             // add new value
             data.push({
                 date: date,
                 value: Math.random() * (100 - 0) + 0
             });
+
+            // move the min_x when there are more than 10 values
+            if (data.length >= 10) {
+
+                //remove first element
+                data.shift();
+
+                options.min_x = data[0].date.getTime();
+                diff_x = ((date.getTime() - options.min_x) * 2);
+                options.max_x = options.min_x + diff_x;
+            }
         };
 
         $interval(function () {

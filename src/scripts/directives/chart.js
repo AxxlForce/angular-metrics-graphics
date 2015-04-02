@@ -1,4 +1,5 @@
 /* global MG */
+/* global d3 */
 /* jshint camelcase:false, unused:false */
 'use strict';
 
@@ -7,7 +8,7 @@ if (!angular.merge) {
     // shimming merge support since it available with ng1.4 but not below
     // straight copy from angular 1.4.0-beta.6 sources
 
-    var slice=[].slice;
+    var slice = [].slice;
 
     /**
      * Set or clear the hashkey for an object.
@@ -86,6 +87,8 @@ angular.module('metricsgraphics', []).directive('chart', function () {
     return {
         link: function (scope, element) {
 
+            var containerEl, options, svg, hoverLine;
+
             // create a random identifier for the chart element
             // TODO replace this with a template that has a unique id
             function randomString(len) {
@@ -96,6 +99,27 @@ angular.module('metricsgraphics', []).directive('chart', function () {
                     s += charSet.substring(randomPoz, randomPoz + 1);
                 }
                 return 'mg-chart-' + s;
+            }
+
+            function createHoverLine(parentSvg) {
+
+                var hoverAreaBoundingBox = parentSvg.getBBox();
+
+                // default to middle of graph
+                var hoverLineX = hoverAreaBoundingBox.x + (hoverAreaBoundingBox.width / 2);
+                var hoverLineYStart = hoverAreaBoundingBox.y;
+                var hoverLineHeight = hoverAreaBoundingBox.height;
+
+                var hoverLineGroup = parentSvg.append('g')
+                    .attr('class', 'hover-line');
+
+                var tmpHoverLine = hoverLineGroup
+                    .append('line')
+                    .attr('x1', hoverLineX).attr('x2', hoverLineX)
+                    .attr('y1', hoverLineYStart).attr('y2', hoverLineHeight);
+                //.style('opacity', 0);
+
+                return tmpHoverLine;
             }
 
             /**
@@ -124,21 +148,43 @@ angular.module('metricsgraphics', []).directive('chart', function () {
 
                     // redraw chart
                     MG.data_graphic(copy);
+
+                    //if(!svg) {
+                    //    svg = d3.select(element[0]).select('svg');
+                    //
+                    //    if(!hoverLine) {
+                    //        hoverLine = createHoverLine(svg.select('.mg-main-area')[0][0]);
+                    //    }
+                    //
+                    //    svg.on('mouseover', function () {
+                    //        console.log('mouseover');
+                    //    }).on('mousemove', function () {
+                    //        console.log('mousemove', d3.mouse(this));
+                    //        var x = d3.mouse(this)[0];
+                    //        hoverLine.attr('x1', x).attr('x2', x).style('opacity', 1);
+                    //    }).on('mouseout', function () {
+                    //        console.log('mouseout');
+                    //        hoverLine.style('opacity', 0);
+                    //    });
+                    //}
                 }
             }
 
+            containerEl = angular.element(element[0].parentElement);
+
             // default options
-            var options = {
+            options = {
                 baselines: [], // [{value: 160000000, label: 'a baseline'}];
                 description: null,
                 height: 200,
                 right: 0,
                 title: null,
                 xax_format: null,
-                width: element[0].parentElement.clientWidth || 300,
+                width: containerEl.width() || 300,
                 x_accessor: null,
                 y_accessor: null
             };
+
             // apply options from scope
             angular.merge(options, scope.options);
 
@@ -176,6 +222,8 @@ angular.module('metricsgraphics', []).directive('chart', function () {
                 angular.merge(options, newValue);
                 redraw(scope.data, options);
             }, true);
+
+
         },
         restrict: 'E',
         scope: {
