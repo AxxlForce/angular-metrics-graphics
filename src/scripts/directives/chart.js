@@ -170,7 +170,9 @@ angular.module('metricsgraphics', []).directive('chart', function () {
                 }
             }
 
-            containerEl = angular.element(element[0].parentElement);
+            containerEl = element[0].parentElement;
+            var computedStyle = window.getComputedStyle(containerEl);
+            var actualWidth = parseFloat(computedStyle.width, 10);
 
             // default options
             options = {
@@ -180,7 +182,7 @@ angular.module('metricsgraphics', []).directive('chart', function () {
                 right: 0,
                 title: null,
                 xax_format: null,
-                width: containerEl.width() || 300,
+                width: actualWidth || 300,
                 x_accessor: null,
                 y_accessor: null
             };
