@@ -1,5 +1,22 @@
-.hover-line {
-    stroke: red;
+.focus-line {
+    stroke: gray;
+    stroke-width: 1px;
+    shape-rendering: crispEdges;
+}
+
+.focus-circle {
+    stroke: gray;
+    fill: #fff;
+}
+
+.focus-tooltip {
+    border-radius: 5px;
+    background-color: rgba(0,0,0,0.7);
+    padding: 5px;
+}
+
+.focus-txt {
+    color: #fff;
 }
 
 .padded-container {

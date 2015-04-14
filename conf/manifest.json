@@ -10,6 +10,7 @@
     "vendor/d3/d3.min.js",
     "vendor/metrics-graphics/dist/metricsgraphics.js",
     "vendor/angular/angular.min.js",
+    "vendor/angular-debounce/dist/angular-debounce.min.js",
     "scripts/directives/chart.js"
   ],
   "app": [

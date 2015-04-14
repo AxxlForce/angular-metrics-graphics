@@ -83,154 +83,410 @@ if (!angular.merge) {
  * @param {Array} data Chart data
  * @param {Object} options Chart configuration
  */
-angular.module('metricsgraphics', []).directive('chart', function () {
-    return {
-        link: function (scope, element) {
+angular.module('metricsgraphics', ['rt.debounce'])
 
-            var containerEl, options, svg, hoverLine;
+    .factory('linkService', function () {
 
-            // create a random identifier for the chart element
-            // TODO replace this with a template that has a unique id
-            function randomString(len) {
-                var charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-                var s = '';
-                for (var i = 0; i < len; i++) {
-                    var randomPoz = Math.floor(Math.random() * charSet.length);
-                    s += charSet.substring(randomPoz, randomPoz + 1);
+        var previous = {};
+
+        var current = {};
+
+        var changeHandlers = {};
+
+        return {
+            set: function (key, value) {
+
+                var previousVal = previous[key] = current[key];
+                var currentVal = current[key] = value;
+
+                var handlersForKey = changeHandlers[key];
+
+                if (!handlersForKey) {
+                    return;
                 }
-                return 'mg-chart-' + s;
+
+                angular.forEach(handlersForKey, function (handler) {
+                    handler(currentVal, previousVal);
+                });
+            },
+            get: function (key) {
+
+                return current[key];
+            },
+            on: function (key, cb) {
+
+                if (!angular.isFunction(cb)) {
+                    throw new Error('Only functions allowed as callback argument');
+                }
+
+                var handlersForKey = changeHandlers[key];
+
+                if (!handlersForKey) {
+                    handlersForKey = [];
+                    changeHandlers[key] = handlersForKey;
+                }
+
+                handlersForKey.push(cb);
+            },
+            off: function (key, cb) {
+
+                var handlersForKey = changeHandlers[key];
+
+                if (!handlersForKey) {
+                    return;
+                }
+
+                for (var i = 0; i < handlersForKey.length; i++) {
+                    if (handlersForKey[i] === cb) {
+                        handlersForKey.splice(i, 1);
+                        i--;
+                    }
+                }
             }
+        };
+    })
 
-            function createHoverLine(parentSvg) {
+    .directive('chart', ['$window', '$timeout', 'debounce', 'linkService', function ($window, $timeout, debounce, linkService) {
+        return {
+            link: function ($scope, $element) {
 
-                var hoverAreaBoundingBox = parentSvg.getBBox();
+                // create a random identifier for the chart element
+                function randomString(len) {
+                    var charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                    var s = '';
+                    for (var i = 0; i < len; i++) {
+                        var randomPoz = Math.floor(Math.random() * charSet.length);
+                        s += charSet.substring(randomPoz, randomPoz + 1);
+                    }
+                    return s;
+                }
 
-                // default to middle of graph
-                var hoverLineX = hoverAreaBoundingBox.x + (hoverAreaBoundingBox.width / 2);
-                var hoverLineYStart = hoverAreaBoundingBox.y;
-                var hoverLineHeight = hoverAreaBoundingBox.height;
+                function getElWidth(el) {
 
-                var hoverLineGroup = parentSvg.append('g')
-                    .attr('class', 'hover-line');
-
-                var tmpHoverLine = hoverLineGroup
-                    .append('line')
-                    .attr('x1', hoverLineX).attr('x2', hoverLineX)
-                    .attr('y1', hoverLineYStart).attr('y2', hoverLineHeight);
-                //.style('opacity', 0);
-
-                return tmpHoverLine;
-            }
-
-            /**
-             * force chart to redraw with given options
-             *
-             * @param data
-             * @param options
-             */
-            function redraw(data, options) {
-
-                //TODO do we have to provide some way of showing that there is no data? use what the library can show as "missing graph"?
-                // only draw if there is actually something to draw
-                if (data && data.length > 0) {
-
-                    // set data to nothing since we split data and options handling in this directive
-                    if (options.data) {
-                        options.data = null;
+                    if (!angular.isElement(el)) {
+                        throw new Error('Only DOM/JQuery allowed.');
                     }
 
-                    // create a copy of the original options to avoid reflecting
-                    // changes that are made to the options from the library
-                    var copy = angular.copy(options);
+                    // width with padding
+                    var width = el.clientWidth;
 
-                    // set the data
-                    copy.data = data;
+                    var compStyle = getComputedStyle(el, null);
+                    var paddingLeft = compStyle.getPropertyValue('padding-right');
+                    width = width - parseInt(paddingLeft);
+                    var paddingRight = compStyle.getPropertyValue('padding-right');
+                    width = width - parseInt(paddingRight);
 
-                    // redraw chart
-                    MG.data_graphic(copy);
-
-                    //if(!svg) {
-                    //    svg = d3.select(element[0]).select('svg');
-                    //
-                    //    if(!hoverLine) {
-                    //        hoverLine = createHoverLine(svg.select('.mg-main-area')[0][0]);
-                    //    }
-                    //
-                    //    svg.on('mouseover', function () {
-                    //        console.log('mouseover');
-                    //    }).on('mousemove', function () {
-                    //        console.log('mousemove', d3.mouse(this));
-                    //        var x = d3.mouse(this)[0];
-                    //        hoverLine.attr('x1', x).attr('x2', x).style('opacity', 1);
-                    //    }).on('mouseout', function () {
-                    //        console.log('mouseout');
-                    //        hoverLine.style('opacity', 0);
-                    //    });
-                    //}
+                    return width;
                 }
+
+                function appendHoverline(parentSvgEl, hoverAreaBoundingBox) {
+
+                    // default to middle of graph
+                    var hoverLineX = hoverAreaBoundingBox.x + (hoverAreaBoundingBox.width / 2);
+                    var hoverLineYStart = hoverAreaBoundingBox.y;
+                    var hoverLineHeight = hoverLineYStart + hoverAreaBoundingBox.height;
+
+                    var hoverLineGroup = parentSvgEl.append('g')
+                        .attr('class', 'focus-line');
+
+                    var tmpHoverLine = hoverLineGroup
+                        .append('line')
+                        .attr('x1', hoverLineX).attr('x2', hoverLineX)
+                        .attr('y1', hoverLineYStart).attr('y2', hoverLineHeight)
+                        .style('opacity', 0);
+
+                    return tmpHoverLine;
+                }
+
+                function appendMouseMarker(parentSvgEl) {
+                    // Append marker
+                    var marker = parentSvgEl.append('circle')
+                        .attr('class', 'focus-circle')
+                        .attr('r', 3)
+                        .style('pointer-events', 'none')
+                        .style('stroke-width', '1px')
+                        .style('opacity', 0);
+
+                    return marker;
+                }
+
+                function appendFocusText(tooltip) {
+
+                    var txt = tooltip
+                        .append('span')
+                        .attr('class', 'focus-txt');
+
+                    return txt;
+                }
+
+                function appendTooltip(el) {
+
+                    var tooltip = el
+                        .append('div')
+                        .attr('class', 'focus-tooltip')
+                        .style('position', 'absolute')
+                        .style('opacity', 0);
+
+                    return tooltip;
+                }
+
+                function appendClickRect(focusLayer) {
+
+                    return focusLayer
+                        .append('rect')
+                        .attr('x', $scope.graphBoundingBox.x)
+                        .attr('y', $scope.graphBoundingBox.y)
+                        .attr('width', $scope.graphBoundingBox.width)
+                        .attr('height', $scope.graphBoundingBox.height)
+                        .style('fill', 'none')
+                        .style('stroke', 'none')
+                        .style('pointer-events', 'all');
+                }
+
+                function onMouseMove(oldMouseX, mouseX, data, tmpOptions) {
+
+                    // no mouse data
+                    if (oldMouseX === null && mouseX === null) {
+
+                        return;
+                    }
+
+                    // mouse in
+                    if (oldMouseX === null && mouseX !== null) {
+
+                        hoverLine.style('opacity', 1);
+                        mouseMarker.style('opacity', 1);
+                        focusTooltip.style('opacity', 1);
+                        return;
+                    }
+
+                    // mouse out
+                    if (oldMouseX !== null && mouseX === null) {
+
+                        hoverLine.style('opacity', 0);
+                        mouseMarker.style('opacity', 0);
+                        focusTooltip.style('opacity', 0);
+                        return;
+                    }
+
+                    // mouse move
+                    hoverLine.attr('x1', mouseX);
+                    hoverLine.attr('x2', mouseX);
+
+                    var x0 = tmpOptions.scales.X.invert(mouseX);
+                    var bisect = d3.bisector(function (dataEntry) {
+                        return dataEntry[tmpOptions.x_accessor];
+                    }).right;
+                    var i = bisect(data, x0, 1);
+                    var d0 = data[i - 1];
+                    var d1 = data[i];
+                    /*d0 is the combination of date and rating that is in the data array at the index to the left of the cursor and d1 is the combination of date and close
+                     that is in the data array at the index to the right of the cursor. In other words we now have two variables that know the value and date above and below the date that
+                     corresponds to the position of the cursor.*/
+                    var d = x0 - d0[tmpOptions.x_accessor] > d1[tmpOptions.x_accessor] - x0 ? d1 : d0;
+                    /*The final line in this segment declares a new array d that is represents the date and close combination that is closest to the cursor.
+                     It is using the magic JavaScript short hand for an if statement that is essentially saying if the distance between the mouse cursor and the date and close combination
+                     on the left is greater than the distance between the mouse cursor and the date and close combination on the right then d is an array of the date and close on
+                     the right of the cursor (d1). Otherwise d is an array of the date and close on the left of the cursor (d0).*/
+
+                    //d is now the data row for the date closest to the mouse position
+
+                    var value = d[tmpOptions.y_accessor];
+                    var y = tmpOptions.scales.Y(value);
+
+                    mouseMarker.attr('cx', mouseX);
+                    mouseMarker.attr('cy', y);
+
+                    focusText.html(value);
+
+                    focusTooltip
+                        .style('left', (svgSelect[0][0].offsetLeft + mouseX + 10) + 'px')
+                        .style('top', (svgSelect[0][0].offsetTop + 10) + 'px');
+                }
+
+                var watchFn;
+
+                function watchX(data, tmpOptions) {
+
+                    var watch = function (newValue, oldValue) {
+
+                        if (linkService.get('target') === options.target) {
+                            return;
+                        }
+
+                        onMouseMove(oldValue, newValue, data, tmpOptions);
+                    };
+
+                    linkService.on('x', watch);
+
+                    $scope.$on('$destroy', function () {
+                        linkService.off('x', watch);
+                    });
+
+                    return watch;
+                }
+
+                /**
+                 * force chart to redraw with given options
+                 *
+                 * @param data
+                 * @param newOptions
+                 */
+                function redraw(data, newOptions) {
+
+                    //TODO do we have to provide some way of showing that there is no data? use what the library can show as "missing graph"?
+                    // only draw if there is actually something to draw
+                    if (data && data.length > 0) {
+
+                        if (!angular.isDefined(newOptions.width)) {
+                            options.width = getElWidth($parent[0]);
+                        }
+
+                        angular.merge(options, newOptions);
+
+                        // set data to nothing since we split data and options handling in this directive
+                        if (options.data) {
+                            options.data = null;
+                        }
+
+                        // create a copy of the original options to avoid reflecting
+                        // changes that are made to the options from the library
+                        var tmpOptions = angular.copy(options);
+
+                        // set the data
+                        tmpOptions.data = data;
+
+                        if (!options.linked && watchFn) {
+                            linkService.off(watchFn);
+                            watchFn = null;
+                        }
+
+                        if (options.linked && !watchFn) {
+                            watchFn = watchX(data, tmpOptions);
+                        }
+
+                        // redraw chart
+                        MG.data_graphic(tmpOptions);
+
+                        if (svgSelect) {
+                            return;
+                        }
+
+                        //$element.css('position', 'relative');
+
+                        svgSelect = d3.select($element[0]).select('svg');
+                        $scope.graphBoundingBox = d3.select($element[0]).select('svg .mg-clip-path rect')[0][0].getBBox();
+
+                        focusLayer = svgSelect.append('g');
+                        hoverLine = appendHoverline(focusLayer, $scope.graphBoundingBox);
+                        mouseMarker = appendMouseMarker(focusLayer);
+                        focusTooltip = appendTooltip(d3.select($element[0]));
+                        focusText = appendFocusText(focusTooltip);
+                        var clickRect = appendClickRect(focusLayer);
+
+                        clickRect.on('mouseover', function () {
+
+                            var mouseX = d3.mouse(this)[0];
+
+                            onMouseMove(null, mouseX, data, tmpOptions);
+
+                            if (options.linked) {
+
+                                linkService.set('target', options.target);
+                                linkService.set('x', mouseX);
+                            }
+                        })
+                            .on('mouseout', function (event) {
+
+                                var mouseX = d3.mouse(this)[0];
+
+                                onMouseMove(mouseX, null, data, tmpOptions);
+
+                                if (options.linked) {
+
+                                    linkService.set('target', null);
+                                    linkService.set('x', null);
+                                }
+                            })
+                            .on('mousemove', function (event) {
+
+                                var mouseX = d3.mouse(this)[0];
+
+                                //var debouncedMouseMove = debounce(100, function () {
+                                    onMouseMove(mouseX, mouseX, data, tmpOptions);
+                                //});
+                                //debouncedMouseMove();
+
+                                if (options.linked) {
+
+                                    linkService.set('x', mouseX);
+                                }
+                            });
+
+                        svgSelect.on('mouseover', function () {
+
+                            this.appendChild(focusLayer.node());
+                        });
+                    }
+                }
+
+                var $parent = $element.parent(),
+                    options = {},
+                    svgSelect,
+                    focusLayer,
+                    hoverLine,
+                    mouseMarker,
+                    focusTooltip,
+                    focusText;
+
+                // set the elements id if not already set
+                $element[0].id = $element[0].id ? $element[0].id : 'mg-chart-' + randomString(5);
+                // set the target id in the options
+                options.target = '#' + $element[0].id;
+
+                /**
+                 *  react to data changes
+                 */
+                $scope.$watchCollection('data', function (newValue) {
+
+                    redraw(newValue, options);
+                });
+
+                /**
+                 * react to option changes
+                 */
+                $scope.$watch('options', function (newValue) {
+
+                    // resetting the target is not allowed
+                    if (newValue.target) {
+                        delete newValue.target;
+                    }
+
+                    redraw($scope.data, newValue);
+                }, true);
+
+                /**
+                 * react on size changes
+                 */
+                angular.element($window).on('resize', function () {
+
+                    // force width to be re-evaluated
+                    delete options.width;
+
+                    // redraw
+                    redraw($scope.data, options);
+                });
+
+                $timeout(function () {
+                    //DOM has finished initial rendering
+                    redraw($scope.data, options);
+                });
+            },
+            restrict: 'E',
+            scope: {
+                data: '=',
+                options: '=',
+                graphBoundingBox: '=?'
             }
-
-            containerEl = element[0].parentElement;
-            var computedStyle = window.getComputedStyle(containerEl);
-            var actualWidth = parseFloat(computedStyle.width, 10);
-
-            // default options
-            options = {
-                baselines: [], // [{value: 160000000, label: 'a baseline'}];
-                description: null,
-                height: 200,
-                right: 0,
-                title: null,
-                xax_format: null,
-                width: actualWidth || 300,
-                x_accessor: null,
-                y_accessor: null
-            };
-
-            // apply options from scope
-            angular.merge(options, scope.options);
-
-            // set the elements id if not already set
-            element[0].id = element[0].id ? element[0].id : randomString(5);
-            // set the target id in the options
-            options.target = '#' + element[0].id;
-
-            // initial draw
-            redraw(scope.data, options);
-
-            /**
-             *  react to data changes
-             */
-            scope.$watchCollection('data', function (newValue) {
-
-                redraw(newValue, options);
-            });
-
-            /**
-             * react to option changes
-             */
-            scope.$watch('options', function (newValue) {
-
-                // data has its own attribute binding
-                if (newValue.data) {
-                    newValue.data = null;
-                }
-
-                // resetting the target is not allowed
-                if (newValue.target) {
-                    delete newValue.target;
-                }
-
-                angular.merge(options, newValue);
-                redraw(scope.data, options);
-            }, true);
-
-
-        },
-        restrict: 'E',
-        scope: {
-            data: '=',
-            options: '='
-        }
-    };
-});
+        };
+    }]);

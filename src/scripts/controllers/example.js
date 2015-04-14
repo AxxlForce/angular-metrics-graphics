@@ -63,7 +63,6 @@ angular
                     title: 'Realtime updates',
                     x_accessor: 'date',
                     y_accessor: 'value',
-                    xax_start_at_min: false,
                     transition_on_update: false,
                     y_extended_ticks: true,
                     interpolate: 'linear'
@@ -76,10 +75,63 @@ angular
                     title: 'Visible spikes',
                     x_accessor: 'date',
                     y_accessor: 'value',
+                    y_extended_ticks: true,
+                    x_axis: false
+                }
+            },
+            linkedOne: {
+                data: [],
+                options: {
+                    description: 'Linking',
+                    title: 'Linking',
+                    x_accessor: 'date',
+                    y_accessor: 'value',
                     transition_on_update: false,
-                    y_extended_ticks: true
+                    y_extended_ticks: true,
+                    interpolate: 'linear',
+                    linked: true
+                }
+            },
+            linkedTwo: {
+                data: [],
+                options: {
+                    description: 'Linking 2',
+                    title: 'Linking 2',
+                    x_accessor: 'date',
+                    y_accessor: 'value',
+                    transition_on_update: false,
+                    y_extended_ticks: true,
+                    interpolate: 'linear',
+                    linked: true
+                }
+            },
+            linkedThree: {
+                data: [],
+                options: {
+                    description: 'Linking 3',
+                    title: 'Linking 3',
+                    x_accessor: 'date',
+                    y_accessor: 'value',
+                    transition_on_update: false,
+                    y_extended_ticks: true,
+                    interpolate: 'linear',
+                    linked: true
+                }
+            },
+            linkedFour: {
+                data: [],
+                options: {
+                    description: 'Linking 3',
+                    title: 'Linking 3',
+                    x_accessor: 'date',
+                    y_accessor: 'value',
+                    transition_on_update: false,
+                    y_extended_ticks: true,
+                    interpolate: 'linear',
+                    linked: true
                 }
             }
+
         };
         $scope.state = $scope.STATES.READY;
 
@@ -128,53 +180,88 @@ angular
             }
         };
 
-        var updateRealtimeData = function (data, options) {
+        //var updateRealtimeData = function (data, options) {
+        //
+        //    var date = new Date();
+        //    var diff_x;
+        //
+        //    // set min at the beginning
+        //    if (data.length === 0) {
+        //
+        //        options.min_x = date.getTime();
+        //        options.max_x = options.min_x + 20000;
+        //    }
+        //
+        //    // add new value
+        //    data.push({
+        //        date: date,
+        //        value: Math.random() * (100 - 0) + 0
+        //    });
+        //
+        //    // move the min_x when there are more than 10 values
+        //    if (data.length >= 10) {
+        //
+        //        //remove first element
+        //        data.shift();
+        //
+        //        options.min_x = data[0].date.getTime();
+        //        diff_x = ((date.getTime() - options.min_x) * 2);
+        //        options.max_x = options.min_x + diff_x;
+        //    }
+        //};
+        //
+        //$interval(function () {
+        //    updateRealtimeData($scope.charts.realtime.data, $scope.charts.realtime.options);
+        //}, 1000);
 
-            var date = new Date();
-            var diff_x;
+        var numOfValues = 1000;
+        var numOfSpikes = 3;
 
-            // set min at the beginning
-            if (data.length === 0) {
+        for (var i = 0; i < numOfValues; i++) {
 
-                options.min_x = date.getTime();
-                options.max_x = options.min_x + 20000;
+            var value = {
+                date: Date.now() + i,
+                value: 0
+            };
+
+            if (i % (Math.floor(numOfValues / numOfSpikes)) === 0) {
+                value.value = 1;
             }
 
-            // add new value
-            data.push({
-                date: date,
+            $scope.charts.spikes.data.push(value);
+        }
+
+        var referenceDate = Date.now();
+
+        for (var j = 0; j < 200; j++) {
+
+            var value1 = {
+                date: referenceDate + j,
                 value: Math.random() * (100 - 0) + 0
-            });
+            };
 
-            // move the min_x when there are more than 10 values
-            if (data.length >= 10) {
+            var value2 = {
+                date: referenceDate + j,
+                value: Math.random() * (100 - 0) + 0
+            };
 
-                //remove first element
-                data.shift();
+            $scope.charts.linkedOne.data.push(value1);
+            $scope.charts.linkedTwo.data.push(value2);
+            $scope.charts.linkedThree.data.push(value1);
+            $scope.charts.linkedFour.data.push(value2);
+        }
 
-                options.min_x = data[0].date.getTime();
-                diff_x = ((date.getTime() - options.min_x) * 2);
-                options.max_x = options.min_x + diff_x;
-            }
-        };
+        var minX = referenceDate;
+        var maxX = referenceDate + j;
 
-        $interval(function () {
-            updateRealtimeData($scope.charts.realtime.data, $scope.charts.realtime.options);
-        }, 1000);
-
-        //for (var i = 0; i < 10000; i++) {
-        //
-        //    var value = {
-        //        date: Date.now() + i,
-        //        value: 0
-        //    };
-        //
-        //    $scope.charts.spikes.data.push(value);
-        //}
-        //
-        //$scope.charts.spikes.data[3333].value = 1;
-        //$scope.charts.spikes.data[6666].value = 1;
-        //$scope.charts.spikes.data[9999].value = 1;
+        $scope.charts.linkedOne.options.min_x = minX;
+        $scope.charts.linkedOne.options.max_x = maxX;
+        $scope.charts.linkedTwo.options.min_x = minX;
+        $scope.charts.linkedTwo.options.max_x = maxX;
+        $scope.charts.linkedThree.options.min_x = minX;
+        $scope.charts.linkedThree.options.max_x = maxX;
+        $scope.charts.linkedFour.options.min_x = minX;
+        $scope.charts.linkedFour.options.max_x = maxX;
 
         // initialize the controller
         $scope.init();
