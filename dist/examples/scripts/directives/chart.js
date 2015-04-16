@@ -148,7 +148,7 @@ angular.module('metricsgraphics', ['rt.debounce'])
 
     .directive('chart', ['$window', '$timeout', 'debounce', 'linkService', function ($window, $timeout, debounce, linkService) {
         return {
-            link: function ($scope, $element) {
+            link: function ($scope, $element, attrs) {
 
                 // create a random identifier for the chart element
                 function randomString(len) {
@@ -377,61 +377,65 @@ angular.module('metricsgraphics', ['rt.debounce'])
                         svgSelect = d3.select($element[0]).select('svg');
                         $scope.graphBoundingBox = d3.select($element[0]).select('svg .mg-clip-path rect')[0][0].getBBox();
 
-                        focusLayer = svgSelect.append('g');
-                        hoverLine = appendHoverline(focusLayer, $scope.graphBoundingBox);
-                        mouseMarker = appendMouseMarker(focusLayer);
-                        focusTooltip = appendTooltip(d3.select($element[0]));
-                        focusText = appendFocusText(focusTooltip);
-                        var clickRect = appendClickRect(focusLayer);
+                        if (hoverlineAttr) {
 
-                        clickRect.on('mouseover', function () {
+                            focusLayer = svgSelect.append('g');
+                            hoverLine = appendHoverline(focusLayer, $scope.graphBoundingBox);
+                            mouseMarker = appendMouseMarker(focusLayer);
+                            focusTooltip = appendTooltip(d3.select($element[0]));
+                            focusText = appendFocusText(focusTooltip);
+                            var clickRect = appendClickRect(focusLayer);
 
-                            var mouseX = d3.mouse(this)[0];
-
-                            onMouseMove(null, mouseX, data, tmpOptions);
-
-                            if (options.linked) {
-
-                                linkService.set('target', options.target);
-                                linkService.set('x', mouseX);
-                            }
-                        })
-                            .on('mouseout', function (event) {
+                            clickRect.on('mouseover', function () {
 
                                 var mouseX = d3.mouse(this)[0];
 
-                                onMouseMove(mouseX, null, data, tmpOptions);
+                                onMouseMove(null, mouseX, data, tmpOptions);
 
                                 if (options.linked) {
 
-                                    linkService.set('target', null);
-                                    linkService.set('x', null);
-                                }
-                            })
-                            .on('mousemove', function (event) {
-
-                                var mouseX = d3.mouse(this)[0];
-
-                                //var debouncedMouseMove = debounce(100, function () {
-                                    onMouseMove(mouseX, mouseX, data, tmpOptions);
-                                //});
-                                //debouncedMouseMove();
-
-                                if (options.linked) {
-
+                                    linkService.set('target', options.target);
                                     linkService.set('x', mouseX);
                                 }
+                            })
+                                .on('mouseout', function (event) {
+
+                                    var mouseX = d3.mouse(this)[0];
+
+                                    onMouseMove(mouseX, null, data, tmpOptions);
+
+                                    if (options.linked) {
+
+                                        linkService.set('target', null);
+                                        linkService.set('x', null);
+                                    }
+                                })
+                                .on('mousemove', function (event) {
+
+                                    var mouseX = d3.mouse(this)[0];
+
+                                    //var debouncedMouseMove = debounce(100, function () {
+                                    onMouseMove(mouseX, mouseX, data, tmpOptions);
+                                    //});
+                                    //debouncedMouseMove();
+
+                                    if (options.linked) {
+
+                                        linkService.set('x', mouseX);
+                                    }
+                                });
+
+                            svgSelect.on('mouseover', function () {
+
+                                this.appendChild(focusLayer.node());
                             });
-
-                        svgSelect.on('mouseover', function () {
-
-                            this.appendChild(focusLayer.node());
-                        });
+                        }
                     }
                 }
 
                 var $parent = $element.parent(),
                     options = {},
+                    hoverlineAttr = attrs.hasOwnProperty('hoverline'),
                     svgSelect,
                     focusLayer,
                     hoverLine,
@@ -443,6 +447,8 @@ angular.module('metricsgraphics', ['rt.debounce'])
                 $element[0].id = $element[0].id ? $element[0].id : 'mg-chart-' + randomString(5);
                 // set the target id in the options
                 options.target = '#' + $element[0].id;
+                // initial options merge
+                angular.merge(options, $scope.options);
 
                 /**
                  *  react to data changes
@@ -486,7 +492,7 @@ angular.module('metricsgraphics', ['rt.debounce'])
             scope: {
                 data: '=',
                 options: '=',
-                graphBoundingBox: '=?'
+                graphBoundingBox: '=?',
             }
         };
     }]);

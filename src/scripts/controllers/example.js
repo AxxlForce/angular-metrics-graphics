@@ -73,8 +73,8 @@ angular
                 options: {
                     description: 'You see mee?',
                     title: 'Visible spikes',
-                    x_accessor: 'date',
-                    y_accessor: 'value',
+                    x_accessor: 'x',
+                    y_accessor: 'y',
                     y_extended_ticks: true,
                     x_axis: false
                 }
@@ -220,12 +220,12 @@ angular
         for (var i = 0; i < numOfValues; i++) {
 
             var value = {
-                date: Date.now() + i,
-                value: 0
+                x: Date.now() + i,
+                y: 0
             };
 
             if (i % (Math.floor(numOfValues / numOfSpikes)) === 0) {
-                value.value = 1;
+                value.y = 1;
             }
 
             $scope.charts.spikes.data.push(value);
