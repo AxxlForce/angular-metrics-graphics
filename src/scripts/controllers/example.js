@@ -130,8 +130,18 @@ angular
                     interpolate: 'linear',
                     linked: true
                 }
+            },
+            missing: {
+                data: [],
+                options: {
+                    x_accessor: 'date',
+                    y_accessor: 'value',
+                    transition_on_update: false,
+                    y_extended_ticks: true,
+                    interpolate: 'linear',
+                    missing_text: 'I have no data, sry :('
+                }
             }
-
         };
         $scope.state = $scope.STATES.READY;
 

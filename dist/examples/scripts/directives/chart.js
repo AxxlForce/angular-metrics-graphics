@@ -334,102 +334,113 @@ angular.module('metricsgraphics', ['rt.debounce'])
                  */
                 function redraw(data, newOptions) {
 
-                    //TODO do we have to provide some way of showing that there is no data? use what the library can show as "missing graph"?
+                    if (!angular.isDefined(newOptions.width)) {
+                        options.width = getElWidth($parent[0]);
+                    }
+
+                    angular.merge(options, newOptions);
+
+                    if (!data || data.length === 0) {
+
+                        if (options.missing_text) {
+
+                            var missingGraphOptions = angular.copy(options);
+
+                            missingGraphOptions.chart_type = 'missing-data';
+
+                            MG.data_graphic(missingGraphOptions);
+                        }
+
+                        return;
+                    }
+
                     // only draw if there is actually something to draw
-                    if (data && data.length > 0) {
 
-                        if (!angular.isDefined(newOptions.width)) {
-                            options.width = getElWidth($parent[0]);
-                        }
+                    // set data to nothing since we split data and options handling in this directive
+                    if (options.data) {
+                        options.data = null;
+                    }
 
-                        angular.merge(options, newOptions);
+                    // create a copy of the original options to avoid reflecting
+                    // changes that are made to the options from the library
+                    var tmpOptions = angular.copy(options);
 
-                        // set data to nothing since we split data and options handling in this directive
-                        if (options.data) {
-                            options.data = null;
-                        }
+                    // set the data
+                    tmpOptions.data = data;
 
-                        // create a copy of the original options to avoid reflecting
-                        // changes that are made to the options from the library
-                        var tmpOptions = angular.copy(options);
+                    if (!options.linked && watchFn) {
+                        linkService.off(watchFn);
+                        watchFn = null;
+                    }
 
-                        // set the data
-                        tmpOptions.data = data;
+                    if (options.linked && !watchFn) {
+                        watchFn = watchX(data, tmpOptions);
+                    }
 
-                        if (!options.linked && watchFn) {
-                            linkService.off(watchFn);
-                            watchFn = null;
-                        }
+                    // redraw chart
+                    MG.data_graphic(tmpOptions);
 
-                        if (options.linked && !watchFn) {
-                            watchFn = watchX(data, tmpOptions);
-                        }
+                    if (svgSelect) {
+                        return;
+                    }
 
-                        // redraw chart
-                        MG.data_graphic(tmpOptions);
+                    //$element.css('position', 'relative');
 
-                        if (svgSelect) {
-                            return;
-                        }
+                    svgSelect = d3.select($element[0]).select('svg');
+                    $scope.graphBoundingBox = d3.select($element[0]).select('svg .mg-clip-path rect')[0][0].getBBox();
 
-                        //$element.css('position', 'relative');
+                    if (hoverlineAttr) {
 
-                        svgSelect = d3.select($element[0]).select('svg');
-                        $scope.graphBoundingBox = d3.select($element[0]).select('svg .mg-clip-path rect')[0][0].getBBox();
+                        focusLayer = svgSelect.append('g');
+                        hoverLine = appendHoverline(focusLayer, $scope.graphBoundingBox);
+                        mouseMarker = appendMouseMarker(focusLayer);
+                        focusTooltip = appendTooltip(d3.select($element[0]));
+                        focusText = appendFocusText(focusTooltip);
+                        var clickRect = appendClickRect(focusLayer);
 
-                        if (hoverlineAttr) {
+                        clickRect.on('mouseover', function () {
 
-                            focusLayer = svgSelect.append('g');
-                            hoverLine = appendHoverline(focusLayer, $scope.graphBoundingBox);
-                            mouseMarker = appendMouseMarker(focusLayer);
-                            focusTooltip = appendTooltip(d3.select($element[0]));
-                            focusText = appendFocusText(focusTooltip);
-                            var clickRect = appendClickRect(focusLayer);
+                            var mouseX = d3.mouse(this)[0];
 
-                            clickRect.on('mouseover', function () {
+                            onMouseMove(null, mouseX, data, tmpOptions);
+
+                            if (options.linked) {
+
+                                linkService.set('target', options.target);
+                                linkService.set('x', mouseX);
+                            }
+                        })
+                            .on('mouseout', function (event) {
 
                                 var mouseX = d3.mouse(this)[0];
 
-                                onMouseMove(null, mouseX, data, tmpOptions);
+                                onMouseMove(mouseX, null, data, tmpOptions);
 
                                 if (options.linked) {
 
-                                    linkService.set('target', options.target);
-                                    linkService.set('x', mouseX);
+                                    linkService.set('target', null);
+                                    linkService.set('x', null);
                                 }
                             })
-                                .on('mouseout', function (event) {
+                            .on('mousemove', function (event) {
 
-                                    var mouseX = d3.mouse(this)[0];
+                                var mouseX = d3.mouse(this)[0];
 
-                                    onMouseMove(mouseX, null, data, tmpOptions);
+                                //var debouncedMouseMove = debounce(100, function () {
+                                onMouseMove(mouseX, mouseX, data, tmpOptions);
+                                //});
+                                //debouncedMouseMove();
 
-                                    if (options.linked) {
+                                if (options.linked) {
 
-                                        linkService.set('target', null);
-                                        linkService.set('x', null);
-                                    }
-                                })
-                                .on('mousemove', function (event) {
-
-                                    var mouseX = d3.mouse(this)[0];
-
-                                    //var debouncedMouseMove = debounce(100, function () {
-                                    onMouseMove(mouseX, mouseX, data, tmpOptions);
-                                    //});
-                                    //debouncedMouseMove();
-
-                                    if (options.linked) {
-
-                                        linkService.set('x', mouseX);
-                                    }
-                                });
-
-                            svgSelect.on('mouseover', function () {
-
-                                this.appendChild(focusLayer.node());
+                                    linkService.set('x', mouseX);
+                                }
                             });
-                        }
+
+                        svgSelect.on('mouseover', function () {
+
+                            this.appendChild(focusLayer.node());
+                        });
                     }
                 }
 
