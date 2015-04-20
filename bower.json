@@ -5,7 +5,7 @@
     "Davis Marques <dmarq.ezz@gmail.com>"
   ],
   "description": "Angular directive for MetricsGraphics library",
-  "main": "dist/angular-metrics-graphics.js",
+  "main": ["dist/angular-metrics-graphics.js", "dist/angular-metrics-graphics.css"],
   "license": "MIT",
   "ignore": [
     "Gruntfile.js",
