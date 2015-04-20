@@ -6,9 +6,10 @@ module.exports = {
     expand: true
   },
   lib:{
-    src: '<%= yeoman.app %>/scripts/directives/chart.js',
-    dest: '<%= yeoman.dist %>/angular-metrics-graphics.js',
-    expand: false
+    files: [
+      { src:'<%= yeoman.app %>/scripts/directives/chart.js', dest:'<%= yeoman.dist %>/angular-metrics-graphics.js' },
+      { src:'<%= yeoman.app %>/css/chart.css', dest:'<%= yeoman.dist %>/angular-metrics-graphics.css' }
+    ]
   },
   vendor: {
     cwd: 'vendor',
@@ -16,4 +17,4 @@ module.exports = {
     dest: '<%= yeoman.dist %>/examples/vendor',
     expand: true
   }
-};
+}

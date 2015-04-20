@@ -243,7 +243,7 @@ angular.module('metricsgraphics', ['rt.debounce'])
                         .style('pointer-events', 'all');
                 }
 
-                function onMouseMove(oldMouseX, mouseX, data, tmpOptions) {
+                function onMouseMove(oldMouseX, mouseX) {
 
                     // no mouse data
                     if (oldMouseX === null && mouseX === null) {
@@ -277,9 +277,9 @@ angular.module('metricsgraphics', ['rt.debounce'])
                     var bisect = d3.bisector(function (dataEntry) {
                         return dataEntry[tmpOptions.x_accessor];
                     }).right;
-                    var i = bisect(data, x0, 1);
-                    var d0 = data[i - 1];
-                    var d1 = data[i];
+                    var i = bisect($scope.data, x0, 1);
+                    var d0 = $scope.data[i - 1];
+                    var d1 = $scope.data[i];
                     /*d0 is the combination of date and rating that is in the data array at the index to the left of the cursor and d1 is the combination of date and close
                      that is in the data array at the index to the right of the cursor. In other words we now have two variables that know the value and date above and below the date that
                      corresponds to the position of the cursor.*/
@@ -363,7 +363,7 @@ angular.module('metricsgraphics', ['rt.debounce'])
 
                     // create a copy of the original options to avoid reflecting
                     // changes that are made to the options from the library
-                    var tmpOptions = angular.copy(options);
+                    tmpOptions = angular.copy(options);
 
                     // set the data
                     tmpOptions.data = data;
@@ -402,7 +402,7 @@ angular.module('metricsgraphics', ['rt.debounce'])
 
                             var mouseX = d3.mouse(this)[0];
 
-                            onMouseMove(null, mouseX, data, tmpOptions);
+                            onMouseMove(null, mouseX);
 
                             if (options.linked) {
 
@@ -414,7 +414,7 @@ angular.module('metricsgraphics', ['rt.debounce'])
 
                                 var mouseX = d3.mouse(this)[0];
 
-                                onMouseMove(mouseX, null, data, tmpOptions);
+                                onMouseMove(mouseX, null);
 
                                 if (options.linked) {
 
@@ -427,7 +427,7 @@ angular.module('metricsgraphics', ['rt.debounce'])
                                 var mouseX = d3.mouse(this)[0];
 
                                 //var debouncedMouseMove = debounce(100, function () {
-                                onMouseMove(mouseX, mouseX, data, tmpOptions);
+                                onMouseMove(mouseX, mouseX);
                                 //});
                                 //debouncedMouseMove();
 
@@ -452,7 +452,8 @@ angular.module('metricsgraphics', ['rt.debounce'])
                     hoverLine,
                     mouseMarker,
                     focusTooltip,
-                    focusText;
+                    focusText,
+                    tmpOptions;
 
                 // set the elements id if not already set
                 $element[0].id = $element[0].id ? $element[0].id : 'mg-chart-' + randomString(5);
@@ -503,7 +504,7 @@ angular.module('metricsgraphics', ['rt.debounce'])
             scope: {
                 data: '=',
                 options: '=',
-                graphBoundingBox: '=?',
+                graphBoundingBox: '=?'
             }
         };
     }]);
